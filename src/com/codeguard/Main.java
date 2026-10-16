@@ -1,235 +1,151 @@
 package com.codeguard;
 
-import com.codeguard.model.JavaClass;
-import com.codeguard.model.JavaMethod;
-import com.codeguard.model.JavaSource;
-import com.codeguard.parser.JavaSourceParser;
-import com.codeguard.parser.Token;
-import com.codeguard.parser.Tokenizer;
-import com.codeguard.scanner.ProjectScanner;
+import com.codeguard.analyzer.InjectionAnalyzer;
+import com.codeguard.model.*;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Main {
 
     public static void main(String[] args) {
 
-        // =====================================================
-        // 1. CHECK COMMAND-LINE ARGUMENT
-        // =====================================================
+        // ==========================================
+        // 1. UserService
+        // ==========================================
 
-        if (args.length == 0) {
+        JavaClass userService =
+                new JavaClass(
+                        "UserService",
+                        JavaType.CLASS,
+                        new ArrayList<>(),   // fields
+                        new ArrayList<>()    // methods
+                );
+
+        JavaSource userSource =
+                new JavaSource(
+                        "com.example",
+                        List.of(),
+                        userService
+                );
+
+
+        // ==========================================
+        // 2. Constructor Injection
+        // ==========================================
+
+        JavaMethod constructor =
+                new JavaMethod(
+                        "OrderService",
+                        null,
+                        List.of("UserService userService"),
+                        5,
+                        7,
+                        new ArrayList<>()
+                );
+
+
+        // ==========================================
+        // 3. Setter Injection
+        // ==========================================
+
+        JavaMethod setter =
+                new JavaMethod(
+                        "setUserService",
+                        "void",
+                        List.of("UserService userService"),
+                        10,
+                        12,
+                        new ArrayList<>()
+                );
+
+
+        // ==========================================
+        // 4. Field Injection
+        // ==========================================
+
+        JavaField userServiceField =
+                new JavaField(
+                        "userService",
+                        "UserService"
+                );
+
+
+
+        // ==========================================
+        // 5. OrderService
+        // ==========================================
+
+        JavaClass orderService =
+                new JavaClass(
+                        "OrderService",
+                        JavaType.CLASS,
+
+                        // Fields
+                        List.of(userServiceField),
+
+                        // Methods
+                        List.of(
+                                constructor,
+                                setter
+                        )
+                );
+        JavaField nameField =
+                new JavaField(
+                        "name",
+                        "String"
+                );
+
+        JavaSource orderSource =
+                new JavaSource(
+                        "com.example",
+                        List.of("com.example.UserService"),
+                        orderService
+                );
+
+
+        // ==========================================
+        // 6. All project sources
+        // ==========================================
+
+        List<JavaSource> sources =
+                List.of(
+                        userSource,
+                        orderSource
+                );
+
+
+        // ==========================================
+        // 7. Run Injection Analyzer
+        // ==========================================
+
+        InjectionAnalyzer analyzer =
+                new InjectionAnalyzer();
+
+        List<Injection> injections =
+                analyzer.analyze(sources);
+
+
+        // ==========================================
+        // 8. Print Result
+        // ==========================================
+
+        System.out.println("======================================");
+        System.out.println("         INJECTION ANALYSIS");
+        System.out.println("======================================");
+
+        for (Injection injection : injections) {
 
             System.out.println(
-                    "Usage: java com.codeguard.Main <project-path>"
+                    injection.className()
+                            + " -> "
+                            + injection.dependency()
+                            + " ["
+                            + injection.type()
+                            + "]"
             );
-
-            return;
         }
 
-        // First argument = project directory
-        Path projectPath = Path.of(args[0]);
-
-
-        // =====================================================
-        // 2. SCAN PROJECT
-        // =====================================================
-
-        ProjectScanner scanner =
-                new ProjectScanner();
-
-        List<Path> javaFiles =
-                scanner.scanProject(projectPath);
-
-
-        System.out.println();
-        System.out.println("========================================");
-        System.out.println("          CODEGUARD DAY 2 TEST");
-        System.out.println("========================================");
-
-        System.out.println(
-                "Java files found: "
-                        + javaFiles.size()
-        );
-
-
-        // =====================================================
-        // 3. PROCESS EACH JAVA FILE
-        // =====================================================
-
-        for (Path javaFile : javaFiles) {
-
-            System.out.println();
-            System.out.println("----------------------------------------");
-            System.out.println(
-                    "FILE: " + javaFile
-            );
-            System.out.println("----------------------------------------");
-
-            try {
-
-                // =============================================
-                // 4. READ SOURCE CODE
-                // =============================================
-
-                String sourceCode =
-                        Files.readString(javaFile);
-
-
-                // =============================================
-                // 5. TOKENIZE
-                // =============================================
-
-                Tokenizer tokenizer =
-                        new Tokenizer();
-
-                List<Token> tokens =
-                        tokenizer.tokenize(sourceCode);
-
-
-                System.out.println(
-                        "Total tokens: "
-                                + tokens.size()
-                );
-
-
-                // =============================================
-                // 6. PARSE
-                // =============================================
-
-                JavaSourceParser parser =
-                        new JavaSourceParser(tokens);
-
-                JavaSource source =
-                        parser.parseSource();
-
-
-                // =============================================
-                // 7. PRINT PACKAGE
-                // =============================================
-
-                System.out.println(
-                        "Package: "
-                                + source.packageName()
-                );
-
-
-                // =============================================
-                // 8. PRINT IMPORTS
-                // =============================================
-
-                System.out.println(
-                        "Imports: "
-                                + source.imports()
-                );
-
-
-                // =============================================
-                // 9. PRINT CLASS
-                // =============================================
-
-                JavaClass javaClass =
-                        source.type();
-
-                System.out.println(
-                        "Type: "
-                                + javaClass.type()
-                );
-
-                System.out.println(
-                        "Class: "
-                                + javaClass.name()
-                );
-
-
-                // =============================================
-                // 10. PRINT METHODS
-                // =============================================
-
-                List<JavaMethod> methods =
-                        javaClass.methods();
-
-                System.out.println(
-                        "Methods: "
-                                + methods.size()
-                );
-
-
-                for (JavaMethod method : methods) {
-
-                    System.out.println();
-
-                    System.out.println(
-                            "  Method: "
-                                    + method.name()
-                    );
-
-                    System.out.println(
-                            "  Return Type: "
-                                    + method.returnType()
-                    );
-
-                    System.out.println(
-                            "  Parameters: "
-                                    + method.parameters()
-                    );
-
-                    System.out.println(
-                            "  Lines: "
-                                    + method.startLine()
-                                    + " - "
-                                    + method.endLine()
-                    );
-
-
-                    // =========================================
-                    // 11. PRINT METHOD BODY TOKENS
-                    // =========================================
-
-                    System.out.println(
-                            "  Body:"
-                    );
-
-                    for (Token token :
-                            method.bodyTokens()) {
-
-                        System.out.print(
-                                "    "
-                                        + token.type()
-                                        + " : "
-                                        + token.value()
-                                        + " (line "
-                                        + token.line()
-                                        + ")"
-                        );
-
-                        System.out.println();
-                    }
-                }
-
-            } catch (Exception e) {
-
-                System.out.println(
-                        "ERROR while parsing: "
-                                + javaFile
-                );
-
-                System.out.println(
-                        e.getMessage()
-                );
-            }
-        }
-
-
-        // =====================================================
-        // 12. END
-        // =====================================================
-
-        System.out.println();
-        System.out.println("========================================");
-        System.out.println("        DAY 2 TEST COMPLETED");
-        System.out.println("========================================");
+        System.out.println("======================================");
     }
 }

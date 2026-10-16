@@ -552,6 +552,7 @@ public class JavaSourceParser {
                     return new JavaClass(
                             name.value(),
                             type,
+                            new ArrayList<>(),
                             methods
                     );
                 }

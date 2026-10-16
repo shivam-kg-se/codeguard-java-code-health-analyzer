@@ -6,6 +6,7 @@ public record JavaClass (
 
     String name,
     JavaType type,
+    List<JavaField> fields,
     List<JavaMethod> methods
 ) {
 }
